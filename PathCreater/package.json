@@ -1,0 +1,10 @@
+{
+  "name": "MarionetteTest",
+  "uuid": "8b2a9723-51c9-4345-a337-666250999da5",
+  "creator": {
+    "version": "3.8.7"
+  },
+  "devDependencies": {
+    "minigame-api-typings": "^3.8.12"
+  }
+}
