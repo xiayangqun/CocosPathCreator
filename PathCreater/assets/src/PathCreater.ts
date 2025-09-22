@@ -314,6 +314,7 @@ export class PathCreateCtr extends Component {
         let vertices: number[] = new Array((currentLength - 1) * 6 * 3);
         let normals: number[] = new Array((currentLength - 1) * 6 * 3);
         let indices: number[] = new Array((currentLength - 1) * 2 * 3);
+        let preMathNormal = null;
         //顶点数据集
         for (let i = 0; i < currentLength - 1; i++) {
             let verticesStartIndex = i * 6 * 3;
@@ -345,7 +346,7 @@ export class PathCreateCtr extends Component {
             vertices[verticesStartIndex + 17] = rightArray[i + 1].z;
 
             //法线
-            let solveNormal = (target: Vec3, p1: Vec3, p2: Vec3) => {
+            let solveNormal = (target: Vec3, p1: Vec3, p2: Vec3): Readonly<Vec3> => {
                 let v1 = Vec3.subtract(new Vec3(), p1, target);
                 let v2 = Vec3.subtract(new Vec3(), p2, target);
                 let normal = Vec3.cross(new Vec3(), v1, v2);
@@ -353,40 +354,57 @@ export class PathCreateCtr extends Component {
                 return normal;
             }
 
-            let leftArrayN = solveNormal(leftArray[i], rightArray[i], leftArray[i + 1]);
-            let rightArrayN = leftArrayN//solveNormal(rightArray[i], leftArray[i + 1], leftArray[i]);
-            let leftNextN = leftArrayN//solveNormal(leftArray[i + 1], leftArray[i], rightArray[i]);
-
-            let leftNextN2 = leftArrayN;//solveNormal(leftArray[i + 1], rightArray[i], rightArray[i + 1]);
-            let rightN2 =  leftNextN2;//solveNormal(rightArray[i], rightArray[i + 1], leftArray[i + 1]);
-            let rightNextN = leftNextN2;//solveNormal(rightArray[i + 1], leftArray[i + 1], rightArray[i]);
+            let curMathNormal = solveNormal(leftArray[i], rightArray[i], leftArray[i + 1]);
+            let curTureNormal = new Vec3(curMathNormal);
+            if (preMathNormal) {
+                curTureNormal = Vec3.add(new Vec3(), curMathNormal, preMathNormal).normalize();
+                preMathNormal = new Vec3(curMathNormal);
+            }
 
             //左边三角形
-            normals[verticesStartIndex + 0] = leftArrayN.x;
-            normals[verticesStartIndex + 1] = leftArrayN.y;
-            normals[verticesStartIndex + 2] = leftArrayN.z;
+            normals[verticesStartIndex + 0] = curTureNormal.x;
+            normals[verticesStartIndex + 1] = curTureNormal.y;
+            normals[verticesStartIndex + 2] = curTureNormal.z;
 
-            normals[verticesStartIndex + 3] = rightArrayN.x;
-            normals[verticesStartIndex + 4] = rightArrayN.y;
-            normals[verticesStartIndex + 5] = rightArrayN.z;
+            normals[verticesStartIndex + 3] = curTureNormal.x;
+            normals[verticesStartIndex + 4] = curTureNormal.y;
+            normals[verticesStartIndex + 5] = curTureNormal.z;
 
-            normals[verticesStartIndex + 6] = leftNextN.x;
-            normals[verticesStartIndex + 7] = leftNextN.y;
-            normals[verticesStartIndex + 8] = leftNextN.z;
+            //这个点的法线在下个I会为重置
+            normals[verticesStartIndex + 6] = curMathNormal.x;
+            normals[verticesStartIndex + 7] = curMathNormal.y;
+            normals[verticesStartIndex + 8] = curMathNormal.z;
 
             //右边三角形
-            normals[verticesStartIndex + 9] = leftNextN2.x;
-            normals[verticesStartIndex + 10] = leftNextN2.y;
-            normals[verticesStartIndex + 11] = leftNextN2.z;
+            //这个点的法线在下个I会为重置
+            normals[verticesStartIndex + 9] = curMathNormal.x;
+            normals[verticesStartIndex + 10] = curMathNormal.y;
+            normals[verticesStartIndex + 11] = curMathNormal.z;
 
-            normals[verticesStartIndex + 12] = rightN2.x;
-            normals[verticesStartIndex + 13] = rightN2.y;
-            normals[verticesStartIndex + 14] = rightN2.z;
+            normals[verticesStartIndex + 12] = curMathNormal.x;
+            normals[verticesStartIndex + 13] = curMathNormal.y;
+            normals[verticesStartIndex + 14] = curMathNormal.z;
 
-            normals[verticesStartIndex + 15] = rightNextN.x;
-            normals[verticesStartIndex + 16] = rightNextN.y;
-            normals[verticesStartIndex + 17] = rightNextN.z;
+            //这个点的法线在下个I会为重置
+            normals[verticesStartIndex + 15] = curMathNormal.x;
+            normals[verticesStartIndex + 16] = curMathNormal.y;
+            normals[verticesStartIndex + 17] = curMathNormal.z;
 
+            if (i > 1) {
+                //重置上个子路径的末尾的点的法线
+                let preVerticesStartIndex = (i - 1) * 6 * 3;
+                normals[preVerticesStartIndex + 6] = curTureNormal.x;
+                normals[preVerticesStartIndex + 7] = curTureNormal.y;
+                normals[preVerticesStartIndex + 8] = curTureNormal.z;
+
+                normals[preVerticesStartIndex + 9] = curTureNormal.x;
+                normals[preVerticesStartIndex + 10] = curTureNormal.y;
+                normals[preVerticesStartIndex + 11] = curTureNormal.z;
+
+                normals[preVerticesStartIndex + 15] = curTureNormal.x;
+                normals[preVerticesStartIndex + 16] = curTureNormal.y;
+                normals[preVerticesStartIndex + 17] = curTureNormal.z;
+            }
 
 
             //索引数据集
@@ -412,17 +430,17 @@ export class PathCreateCtr extends Component {
         this.node.getComponent(MeshRenderer).mesh = this.mesh;
     }
 
-    
+
     //根据给出的虚拟位置，将物体放置到跑道上
-    public putItemByVirtualPosition (node:Node, vx:number, vz:number): boolean {
+    public putItemByVirtualPosition(node: Node, vx: number, vz: number): boolean {
         let startPointIndex = Math.floor(vz / this.segmentLength) + 1;
         let endPointIndex = startPointIndex + 1;
 
-        if(startPointIndex >= this.pathPointContainer.children.length -1){
+        if (startPointIndex >= this.pathPointContainer.children.length - 1) {
             //想要投放的物体已经超出了跑道的范围
             return false;
         }
-        else{
+        else {
             let startPoint = this.pathPointContainer.children[startPointIndex];
             let endPoint = this.pathPointContainer.children[endPointIndex];
 
@@ -430,7 +448,7 @@ export class PathCreateCtr extends Component {
             dir = dir.normalize();
             let remainZ = vz - (startPointIndex - 1) * this.segmentLength;
             let pos = Vec3.scaleAndAdd(new Vec3(), startPoint.position, dir, remainZ);
-            
+
 
             node.parent = this.itemsContainer;
             node.forward = dir;
@@ -441,7 +459,7 @@ export class PathCreateCtr extends Component {
         }
     }
 
-    public clearAllItems(){
+    public clearAllItems() {
         this.itemsContainer.removeAllChildren();
     }
 }
