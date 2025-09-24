@@ -1,4 +1,4 @@
-import { _decorator, CCInteger, Component, gfx, instantiate, Mesh, Node, Prefab, Quat, Vec3, utils, MeshRenderer, CCFloat, math } from 'cc';
+import { _decorator, CCInteger, Component, gfx, instantiate, Mesh, Node, Prefab, Quat, Vec3, utils, MeshRenderer, CCFloat, math, IVec3Like } from 'cc';
 import { PathPoint } from './PathPoint';
 const { ccclass, property } = _decorator;
 
@@ -267,7 +267,7 @@ export class PathCreateCtr extends Component {
         //最后一段路径为直线，长度为 lastSegmentLength
         let lastDir = Vec3.subtract(new Vec3(), children[needLength - 2].position, children[needLength - 3].position);
         lastDir = lastDir.normalize();
-        let lastPos = Vec3.scaleAndAdd(new Vec3(), children[needLength - 2].position, lastDir, this.firstSegmentLength);
+        let lastPos = Vec3.scaleAndAdd(new Vec3(), children[needLength - 2].position, lastDir, this.lastSegmentLength);
         children[needLength - 1].setPosition(lastPos);
     }
 
@@ -282,6 +282,67 @@ export class PathCreateCtr extends Component {
 
         let leftArray: Array<Vec3> = [];
         let rightArray: Array<Vec3> = [];
+        // let preLeftPoint: Vec3 = null;
+        // let preRightPoint: Vec3 = null;
+
+        /**
+         * 判断三维线段 AB 与 CD 是否相交
+         * @param {{x:number, y:number, z:number}} A
+         * @param {{x:number, y:number, z:number}} B
+         * @param {{x:number, y:number, z:number}} C
+         * @param {{x:number, y:number, z:number}} D
+         * @returns {{intersect:boolean, point:Vec3|null}}
+         */
+        // let segmentIntersect3D = (A: Vec3, B: Vec3, C: Vec3, D: Vec3) => {
+        //     const EPS = 1e-8;
+
+        //     // 向量 AB, CD, AC
+        //     const ab = Vec3.subtract(new Vec3(), B, A);
+        //     const cd = Vec3.subtract(new Vec3(), D, C);
+        //     const ac = Vec3.subtract(new Vec3(), C, A);
+
+        //     const abxcd = Vec3.cross(new Vec3(), ab, cd);
+        //     const det = Vec3.dot(abxcd, abxcd);
+
+        //     // 平行或共线
+        //     if (det < EPS) return { intersect: false, point: null };
+
+        //     const acxcd = Vec3.cross(new Vec3(), ac, cd);
+        //     const t = Vec3.dot(acxcd, abxcd) / det;
+        //     const acxab = Vec3.cross(new Vec3(), ac, ab);
+        //     const s = Vec3.dot(acxab, abxcd) / det;
+
+        //     // 是否在线段内
+        //     if (t < -EPS || t > 1 + EPS || s < -EPS || s > 1 + EPS)
+        //         return { intersect: false, point: null };
+
+
+        //     let point = new Vec3(
+        //             A.x + t * ab.x,
+        //             A.y + t * ab.y,
+        //             A.z + t * ab.z
+        //         );
+
+        //     let PointC = Vec3.subtract(new Vec3(), point, C);
+        //     let PointD = Vec3.subtract(new Vec3(), point, D);
+        //     if(PointC.length() < PointD.length()){
+        //         //相交点靠近 C点
+        //         let newC = Vec3.scaleAndAdd(new Vec3(), point, PointC.normalize(), 1);
+        //         C.set(newC);
+        //     }
+        //     else{
+        //         //相交点靠近 D点
+        //         let newD = Vec3.scaleAndAdd(new Vec3(), point, PointD.normalize(),1);
+        //         D.set(newD);    
+        //     }
+
+        //     // 交点
+        //     return {
+        //         intersect: true,
+        //         point: point
+        //     };
+        // }
+
 
         //计算每个路径点的左右顶点位置
         for (let i = 0; i < currentLength; i++) {
@@ -303,11 +364,20 @@ export class PathCreateCtr extends Component {
             let leftPoint = Vec3.scaleAndAdd(new Vec3(), children[i].position, right, -pathWidth / 2);
             let rightPoint = Vec3.scaleAndAdd(new Vec3(), children[i].position, right, pathWidth / 2);
 
+            //没啥用
+            // if (preLeftPoint && preRightPoint) {
+            //     
+            //     segmentIntersect3D(preLeftPoint, preRightPoint, leftPoint, rightPoint);
+            // }
+
             children[i].getComponent(PathPoint).leftVertex = leftPoint;
             children[i].getComponent(PathPoint).rightVertex = rightPoint;
 
             leftArray.push(leftPoint);
             rightArray.push(rightPoint);
+
+            // preLeftPoint = leftPoint;
+            // preRightPoint = rightPoint;
         }
 
 
